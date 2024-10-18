@@ -54,7 +54,7 @@ struct pos{
     case '#': \
     case '\\': \
     case ')': \
-    case ']'
+    case ']'    
 
 
 
@@ -121,6 +121,7 @@ struct compile_process{
         const char* abs_path;
 
     }cfile;
+    struct vector* token_vec;
     FILE* ofile;
 };
 void compiler_error(struct compile_process* compiler, const char* msg,...);

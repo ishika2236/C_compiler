@@ -45,6 +45,7 @@ int compile_file(const char* filename, const char* out_filename, int flags)
         printf("lexical analysis failed");
         return 0;
     }
+    process -> token_vec = lex_process -> token_vec;
     return COMPILER_FILE_COMPILED_OK;
 
     //perform parsing

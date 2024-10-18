@@ -15,7 +15,7 @@
 
 
 struct token* read_next_token();
-
+bool lex_is_in_expression();
 static struct lex_process* lex_process;
 static struct token tmp_token;
 
@@ -27,6 +27,10 @@ static char peekc()
 static char nextc()
 {
     char c = lex_process->functions->next_char(lex_process);
+    if(lex_is_in_expression())
+    {
+        buffer_write(lex_process -> parenthesis_buffer, c);
+    }
     lex_process->pos.col += 1;
     if (c == '\n')
     {
@@ -41,6 +45,12 @@ static void pushc(char c)
 {
     lex_process->functions->push_char(lex_process, c);
 }
+static char assert_next_char(char c)
+{
+    char next_c = nextc();
+    assert(c == next_c);
+    return next_c;
+}
 
 static struct pos lex_file_position()
 {
@@ -51,6 +61,10 @@ struct token* token_create(struct token* _token)
 {
     memcpy(&tmp_token, _token, sizeof(struct token));
     tmp_token.pos = lex_file_position();
+    if(lex_is_in_expression())
+    {
+        tmp_token.between_brackets = buffer_ptr(lex_process -> parenthesis_buffer);
+    }
     return &tmp_token;
 }
 
@@ -372,6 +386,114 @@ struct token* token_make_newline()
     nextc();
     return token_create(&(struct token){.type = TOKEN_TYPE_NEWLINE});
 }
+char lex_get_escaped_char(char c)
+{
+    char co = 0;
+    switch(c)
+    {
+        case 'n':
+            co = '\n';
+            break;
+        case 't':
+            co = '\t';
+            break;
+        case '\\':
+            co = '\\';
+            break;
+        case '\'':
+            co = '\'';
+            break;
+
+
+    }
+    return co;
+}
+void lexer_pop_token()
+{
+    vector_pop(lex_process -> token_vec);
+}
+bool is_hex_char(char c)
+{
+    c= tolower(c);
+    return( (c >= '0' && c <= '9' )|| (c >= 'a' && c <= 'f'));
+}
+const char* read_hex_number_str()
+{
+    struct buffer* buffer = buffer_create();
+    char c = peekc();
+    LEX_GETC_IF(buffer, c, is_hex_char(c));
+    buffer_write(buffer, 0x00);
+
+    return buffer_ptr(buffer);
+}
+struct token* token_make_special_number_hexadecimal()
+{
+    nextc();
+
+    unsigned long number = 0;
+    const char* number_str= read_hex_number_str();
+
+    number = strtol(number_str, 0, 16);
+    return token_make_number_for_value(number);
+}
+void lexer_validate_binary_string(const char* str)
+{
+    size_t len = strlen(str);
+    for(int i = 0 ;i < len; i++)
+    {
+        if(str[i] != '0' && str[i] !='1')
+        {
+            return compiler_error(lex_process -> compiler, "this is not a valid binary number\n");
+        }
+    }
+}
+struct token* token_make_special_number_binary()
+{
+    nextc();
+    unsigned long number = 0;
+    const char* number_str = read_number_str();
+
+    lexer_validate_binary_string(number_str);
+    number = strtol(number_str, 0, 2);
+    return token_make_number_for_value(number);
+}
+struct token* token_make_special_number()
+{
+    struct token* token = NULL;
+    struct token* last_token = lexer_last_token();
+    if(!last_token || !(last_token -> type == TOKEN_TYPE_NUMBER && last_token-> llnum == 0 ))
+    {
+        return token_make_identifier_or_keyword();
+    }
+
+    lexer_pop_token();
+
+    char c = peekc();
+    if(c == 'x')
+    {
+        token = token_make_special_number_hexadecimal();
+    }
+    else if (c == 'b')
+    {
+        token = token_make_special_number_binary();
+    }
+    return token;
+}
+struct token* token_make_quote()
+{
+    assert_next_char('\'');
+    char c = nextc();
+    if(c == '\\')
+    {
+        c = nextc();
+        c = lex_get_escaped_char(c);
+    }
+    if(nextc()!= '\'')
+    {
+        compiler_error(lex_process -> compiler, "You opened a quote '  but did not close it with a ' character");
+    }
+    return token_create(&(struct token){.type = TOKEN_TYPE_NUMBER, .cval=c});
+}
 struct token* read_next_token()
 {
     struct token* token = NULL;
@@ -390,9 +512,16 @@ struct token* read_next_token()
         SYMBOL:
             token = token_make_symbol();
             break;
+
+        case 'b':
+        case 'x':
+            token =  token_make_special_number();
+            break;
         case '"':
         token = token_make_string('"', '"');
         break;
+        case '\'':
+            token = token_make_quote();
         // We don't care about whitespace ignore them
         case ' ':
         case '\t':

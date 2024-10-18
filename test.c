@@ -1,3 +1,5 @@
-(12 + 20) hello int long  \n
-
-//hello comment
+#include <stdio.h>
+int main()
+{
+    return 0;
+}
