@@ -1,1 +1,3 @@
-12 + 20
+(12 + 20) hello int long  \n
+
+//hello comment

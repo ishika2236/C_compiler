@@ -46,6 +46,17 @@ struct pos{
     case '.':    \
     case '?'    \
 
+#define SYMBOL \
+    case '{': \
+    case '}': \
+    case ':': \
+    case ';': \
+    case '#': \
+    case '\\': \
+    case ')': \
+    case ']'
+
+
 
 enum{
     TOKEN_TYPE_IDENTIFIER,

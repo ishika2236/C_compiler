@@ -38,12 +38,12 @@ int compile_file(const char* filename, const char* out_filename, int flags)
 
     //perform lexical analysis
     struct lex_process* lex_process = lex_process_create(process, &compiler_lex_functions,NULL);
-    if(!lex_process)return NULL;
+    if(!lex_process)return 0;
 
     if(lex(lex_process) != LEXICAL_ANALYSIS_ALL_OK)
     {
         printf("lexical analysis failed");
-        return NULL;
+        return 0;
     }
     return COMPILER_FILE_COMPILED_OK;
 
