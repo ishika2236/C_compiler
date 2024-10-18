@@ -4,6 +4,10 @@
 #include<stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
+
+#define S_EQ(str, str2) \
+    (str && str2 && (strcmp(str,str2) == 0)) 
 
 struct pos{
     int line;
@@ -22,6 +26,26 @@ struct pos{
     case '7': \
     case '8': \
     case '9' \
+
+#define OPERATOR_EXCLUDING_DIVISION \
+    case '+':    \
+    case '-':   \
+    case '*':    \
+    case '>':    \
+    case '<':    \
+    case '^':    \
+    case '%':    \
+    case '!':    \
+    case '=':    \
+    case '~':    \
+    case '|':    \
+    case '&':    \
+    case '(':    \
+    case '[':    \
+    case ',':    \
+    case '.':    \
+    case '?'    \
+
 
 enum{
     TOKEN_TYPE_IDENTIFIER,
@@ -99,5 +123,6 @@ struct lex_process* lex_process_create(struct compile_process* compiler, struct 
 void lex_process_free(struct lex_process* process);
 void* lex_process_private(struct lex_process* process);
 struct vector* lex_process_tokens(struct lex_process* process);
+bool token_is_keyword(struct token* token, const char* value);
 
 #endif
